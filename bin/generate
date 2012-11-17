@@ -1,0 +1,12 @@
+#! /bin/bash
+
+cd `dirname $0`
+
+DIR_DATA=../data
+DIR_LIB=../lib
+
+FILE_DATA_NIC=${DIR_DATA}/nic
+FILE_DATA_COUNTRY=${DIR_DATA}/country
+FILE_LIB_MAPPING=${DIR_LIB}/generate.pl
+
+perl ${FILE_LIB_MAPPING} ${FILE_DATA_NIC} ${FILE_DATA_COUNTRY}

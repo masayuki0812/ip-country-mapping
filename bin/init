@@ -1,0 +1,99 @@
+#! /bin/bash
+
+cd `dirname $0`
+
+DIR_CONF=../conf
+DIR_DATA=../data
+
+FILE_URL_NIC=${DIR_CONF}/url_nic
+FILE_URL_COUNTRY=${DIR_CONF}/url_country
+FILE_COUNTRY=${DIR_CONF}/country
+FILE_DATA_NIC=${DIR_DATA}/nic
+FILE_DATA_COUNTRY=${DIR_DATA}/country
+
+## Check download command
+
+which wget > /dev/null
+found_wget=$?
+
+which curl > /dev/null
+found_curl=$?
+
+if [ ${found_wget} -eq 0 ]; then
+    command="wget -O "
+elif [ ${found_curl} -eq 0 ]; then
+    command="curl -o "
+else
+    echo "## Error : 'wget' and 'curl' not found."
+    exit 1
+fi
+
+## Make dir
+if [ ! -d ${DIR_DATA} ]; then
+    echo -n "Making data directory..."
+    mkdir ${DIR_DATA}
+    echo "done."
+fi
+
+## Remove data files
+if [ -f ${FILE_DATA_NIC} ]; then
+    echo -n "Removing ${FILE_DATA_NIC}..."
+    rm -f ${FILE_DATA_NIC}
+    echo "done."
+fi
+if [ -f ${FILE_DATA_COUNTRY} ]; then
+    echo -n "Removing ${FILE_DATA_COUNTRY}..."
+    rm -f ${FILE_DATA_COUNTRY}
+    echo "done."
+fi
+
+## Download nic from url in ${FILE_URL_NIC}
+
+for url in `cat ${FILE_URL_NIC}`
+do
+    ## Check url
+    echo ${url} | grep -e "^ftp://" > /dev/null
+    found_ftp=$?
+
+    echo ${url} | grep -e "^http://" > /dev/null
+    found_http=$?
+
+    if [ ${found_ftp} -eq 1 -a ${found_http} -eq 1 ]; then
+        continue
+    fi
+
+    ## Get filename
+    filename=`echo ${url} | awk -F'/' '{ print $NF }'`
+
+    ## Set save path
+    save_path=${DIR_DATA}/${filename}
+
+    ## Download
+    echo "Downloading from ${url} as ${save_path}..."
+    ${command} ${save_path} ${url}
+    echo "done."
+
+    ## Merge
+    echo -n "Merging ${save_path} to ${FILE_DATA_NIC}..."
+    cat ${save_path} >> ${FILE_DATA_NIC}
+    echo "done."
+
+done
+
+## Download country from ${FILE_URL_COUNTRY}
+
+url=`head -n 1 ${FILE_URL_COUNTRY}`
+
+echo -n "Downloading from ${url} as ${FILE_DATA_COUNTRY}..."
+${command} ${FILE_DATA_COUNTRY} ${url}
+echo "done."
+
+## Append conf/country
+
+if [ -f ${FILE_COUNTRY} ]; then
+    echo -n "Appending contries defined by user..."
+    cat ${FILE_COUNTRY} >> ${FILE_DATA_COUNTRY}
+    echo "done."
+fi
+
+echo "All done."
